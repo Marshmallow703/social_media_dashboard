@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社媒发布看板</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; }
+  .app { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
+
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .header-left h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .header-left p { font-size: 13px; color: #888; margin-top: 3px; }
+  .header-right { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn { font-size: 13px; padding: 7px 14px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; cursor: pointer; font-weight: 500; transition: all .15s; }
+  .btn:hover { background: #f0efe9; border-color: #bbb; }
+  .btn-accent { background: #534AB7; color: #fff; border-color: #534AB7; }
+  .btn-accent:hover { background: #3C3489; border-color: #3C3489; }
+  .btn-sm { font-size: 12px; padding: 5px 10px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #e5e3dc; padding-bottom: 0; }
+  .tab { font-size: 13px; padding: 8px 16px; border: none; background: none; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; transition: all .15s; }
+  .tab.active { color: #534AB7; border-bottom-color: #534AB7; }
+  .tab:hover { color: #534AB7; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #666; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .matrix-wrap { overflow-x: auto; background: #fff; border-radius: 12px; border: 1px solid #e5e3dc; }
+  table { width: 100%; border-collapse: collapse; min-width: 600px; }
+  thead th { font-size: 12px; font-weight: 600; color: #666; padding: 12px 14px; border-bottom: 1px solid #e5e3dc; text-align: left; background: #faf9f6; white-space: nowrap; }
+  thead th:first-child { width: 150px; border-radius: 12px 0 0 0; }
+  thead th:last-child { border-radius: 0 12px 0 0; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid #f0efe9; vertical-align: middle; }
+  tbody td:first-child { font-size: 13px; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
+  tbody tr:hover td { background: #faf9f6; }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; white-space: nowrap; cursor: default; }
+  .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .s-prod { background: #FAEEDA; color: #854F0B; }
+  .s-review { background: #FBEAF0; color: #993556; }
+  .s-ready { background: #E6F1FB; color: #185FA5; }
+  .s-pub { background: #EAF3DE; color: #3B6D11; }
+  .s-idea { background: #EEEDFE; color: #534AB7; }
+  .s-none { background: #f0efe9; color: #aaa; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: #fff; border: 1px solid #e5e3dc; border-radius: 10px; padding: 14px 16px; }
+  .stat-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .stat-val { font-size: 24px; font-weight: 600; color: #1a1a1a; }
+  .stat-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  .snap-form { background: #fff; border: 1px solid #e5e3dc; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .snap-form h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .form-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-row select, .form-row input[type=date] { flex: 1; min-width: 130px; font-size: 13px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; }
+  textarea { width: 100%; font-size: 13px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; resize: vertical; min-height: 80px; line-height: 1.6; font-family: inherit; }
+  textarea:focus, select:focus, input:focus { outline: none; border-color: #534AB7; box-shadow: 0 0 0 2px rgba(83,74,183,.1); }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .snap-card { background: #fff; border: 1px solid #e5e3dc; border-radius: 12px; padding: 16px; }
+  .snap-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+  .snap-date { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .snap-type-badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; background: #EEEDFE; color: #534AB7; font-weight: 500; }
+  .snap-body { font-size: 13px; color: #444; line-height: 1.7; white-space: pre-wrap; margin-bottom: 10px; }
+  .snap-stats { display: flex; gap: 14px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid #f0efe9; }
+  .snap-stat { font-size: 12px; color: #888; }
+  .snap-stat strong { color: #1a1a1a; font-weight: 600; }
+  .snap-del { font-size: 11px; color: #ccc; cursor: pointer; border: none; background: none; padding: 2px 4px; }
+  .snap-del:hover { color: #e24b4a; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: #aaa; font-size: 14px; }
+  .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+  .loading { text-align: center; padding: 30px; color: #888; font-size: 13px; }
+  .error-bar { background: #FCEBEB; border: 1px solid #F09595; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #A32D2D; margin-bottom: 16px; }
+
+  .add-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 14px; border: 1px dashed #ccc; border-radius: 12px; background: none; color: #888; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .add-btn:hover { background: #fff; border-color: #534AB7; color: #534AB7; }
+
+  .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .last-sync { font-size: 12px; color: #aaa; }
+
+  @media(max-width:600px) {
+    .header { flex-direction: column; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <h1>社媒发布看板</h1>
+      <p id="sync-time">正在加载 Asana 数据...</p>
+    </div>
+    <div class="header-right">
+      <button class="btn" onclick="loadAsana()">↻ 刷新</button>
+      <button class="btn btn-accent" onclick="openSnapForm()">+ 记录快照</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('matrix')">平台矩阵</button>
+    <button class="tab" onclick="switchTab('history')">历史快照</button>
+  </div>
+
+  <div id="panel-matrix" class="panel active">
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="stat-label">总任务</div><div class="stat-val" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">已发布</div><div class="stat-val" id="stat-pub" style="color:#3B6D11">—</div></div>
+      <div class="stat-card"><div class="stat-label">待 review</div><div class="stat-val" id="stat-review" style="color:#993556">—</div></div>
+      <div class="stat-card"><div class="stat-label">制作中</div><div class="stat-val" id="stat-prod" style="color:#854F0B">—</div></div>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#EF9F27"></div>制作中</div>
+      <div class="leg"><div class="leg-dot" style="background:#D4537E"></div>待 review</div>
+      <div class="leg"><div class="leg-dot" style="background:#378ADD"></div>待发布</div>
+      <div class="leg"><div class="leg-dot" style="background:#639922"></div>已发布</div>
+      <div class="leg"><div class="leg-dot" style="background:#7F77DD"></div>idea</div>
+      <div class="leg"><div class="leg-dot" style="background:#ccc"></div>未开始</div>
+    </div>
+    <div id="matrix-wrap"></div>
+  </div>
+
+  <div id="panel-history" class="panel">
+    <div id="snap-form-wrap" style="display:none">
+      <div class="snap-form">
+        <h3>记录快照</h3>
+        <div class="form-row">
+          <select id="snap-type">
+            <option value="daily">日报</option>
+            <option value="weekly" selected>周报</option>
+            <option value="monthly">月报</option>
+          </select>
+          <input type="date" id="snap-date">
+        </div>
+        <textarea id="snap-text" placeholder="本周进度总结、待跟进事项、给竹子老师的备注...&#10;&#10;例：&#10;- 竹笋大会2025 公众号文章待 review，预计周三发出&#10;- LinkedIn 图片顺序已截图发竹子老师确认&#10;- 下周开始 Wharton 峰会内容制作"></textarea>
+        <div class="form-actions">
+          <button class="btn" onclick="closeSnapForm()">取消</button>
+          <button class="btn btn-accent" onclick="saveSnapshot()">保存快照</button>
+        </div>
+      </div>
+    </div>
+    <div id="history-wrap"><div class="loading">加载历史记录...</div></div>
+  </div>
+</div>
+
+<script>
+const TOKEN = '2/1213206456523818/1214408896515501:c0f93c96a559998225d1f99af0ad4624';
+const PROJECT_ID = '1214406810351207';
+const PLATFORMS = ['小红书','公众号','朋友圈','视频号','LinkedIn','Instagram'];
+
+const SECTION_STATUS = {
+  '📌 Topics（父任务区）': 'idea',
+  '🔨 In Production': 'prod',
+  '👀 Pending Review': 'review',
+  '✅ Ready to Publish': 'ready',
+  '🚀 Published': 'pub'
+};
+
+const STATUS_LABEL = { prod:'制作中', review:'待 review', ready:'待发布', pub:'已发布', idea:'idea', none:'—' };
+const STATUS_CLASS = { prod:'s-prod', review:'s-review', ready:'s-ready', pub:'s-pub', idea:'s-idea', none:'s-none' };
+
+let matrix = {};
+let currentStats = { total:0, pub:0, review:0, prod:0 };
+
+function asanaFetch(path) {
+  return fetch('https://app.asana.com/api/1.0' + path, {
+    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Accept': 'application/json' }
+  }).then(r => r.json());
+}
+
+async function loadAsana() {
+  document.getElementById('matrix-wrap').innerHTML = '<div class="loading">正在拉取 Asana 数据...</div>';
+  document.getElementById('sync-time').textContent = '正在同步...';
+
+  try {
+    const sectionsResp = await asanaFetch(`/projects/${PROJECT_ID}/sections?opt_fields=name,gid`);
+    const sections = sectionsResp.data || [];
+
+    const allTasks = [];
+    for (const sec of sections) {
+      const status = SECTION_STATUS[sec.name];
+      if (!status || status === 'idea') continue;
+      const tasksResp = await asanaFetch(`/sections/${sec.gid}/tasks?opt_fields=name,completed&limit=100`);
+      const tasks = (tasksResp.data || []).filter(t => !t.completed);
+      tasks.forEach(t => allTasks.push({ name: t.name, status }));
+    }
+
+    matrix = {};
+    allTasks.forEach(t => {
+      const parsed = parseTaskName(t.name);
+      if (!parsed) return;
+      const { event, platform, format } = parsed;
+      if (!matrix[event]) matrix[event] = {};
+      const plat = normPlatform(platform);
+      if (plat) {
+        matrix[event][plat] = { status: t.status, format };
+      }
+    });
+
+    renderMatrix();
+    updateStats();
+
+    const now = new Date().toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('sync-time').textContent = '最后同步：' + now;
+    saveCache(allTasks);
+
+  } catch(e) {
+    const cached = loadCache();
+    if (cached.length) {
+      matrix = {};
+      cached.forEach(t => {
+        const parsed = parseTaskName(t.name);
+        if (!parsed) return;
+        const { event, platform, format } = parsed;
+        if (!matrix[event]) matrix[event] = {};
+        const plat = normPlatform(platform);
+        if (plat) matrix[event][plat] = { status: t.status, format };
+      });
+      renderMatrix();
+      updateStats();
+      document.getElementById('sync-time').textContent = '已加载缓存（网络错误）';
+    } else {
+      document.getElementById('matrix-wrap').innerHTML = '<div class="error-bar">无法连接 Asana，请检查网络连接后刷新重试。</div>';
+      document.getElementById('sync-time').textContent = '同步失败';
+    }
+  }
+}
+
+function parseTaskName(name) {
+  const m = name.match(/^【(.+?)】(.+?)｜(.+?)｜(.+)$/);
+  if (!m) return null;
+  return { event: m[1], platform: m[2], format: m[3], theme: m[4] };
+}
+
+function normPlatform(p) {
+  const map = { '小红书':'小红书', '公众号':'公众号', '微信公众号':'公众号', '朋友圈':'朋友圈', '微信朋友圈':'朋友圈', '视频号':'视频号', 'LinkedIn':'LinkedIn', 'Instagram':'Instagram' };
+  return map[p] || null;
+}
+
+function renderMatrix() {
+  const events = Object.keys(matrix);
+  if (!events.length) {
+    document.getElementById('matrix-wrap').innerHTML = '<div class="empty-state"><div class="icon">📋</div><div>暂无数据，点击"刷新"加载 Asana 任务</div></div>';
+    return;
+  }
+
+  let html = '<div class="matrix-wrap"><table><thead><tr><th>活动</th>';
+  PLATFORMS.forEach(p => html += `<th>${p}</th>`);
+  html += '</tr></thead><tbody>';
+
+  events.forEach(ev => {
+    html += `<tr><td>${ev}</td>`;
+    PLATFORMS.forEach(p => {
+      const cell = matrix[ev][p];
+      if (cell) {
+        const cls = STATUS_CLASS[cell.status] || 's-none';
+        const lbl = STATUS_LABEL[cell.status] || '—';
+        html += `<td><span class="status-pill ${cls}"><span class="dot"></span>${lbl}</span></td>`;
+      } else {
+        html += `<td><span class="status-pill s-none">—</span></td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('matrix-wrap').innerHTML = html;
+}
+
+function updateStats() {
+  let total=0, pub=0, review=0, prod=0;
+  Object.values(matrix).forEach(ev => {
+    Object.values(ev).forEach(cell => {
+      total++;
+      if (cell.status === 'pub') pub++;
+      else if (cell.status === 'review') review++;
+      else if (cell.status === 'prod') prod++;
+    });
+  });
+  currentStats = { total, pub, review, prod };
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pub').textContent = pub;
+  document.getElementById('stat-review').textContent = review;
+  document.getElementById('stat-prod').textContent = prod;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab:nth-child(${tab === 'matrix' ? 1 : 2})`).classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  if (tab === 'history') renderHistory();
+}
+
+function openSnapForm() {
+  switchTab('history');
+  document.getElementById('snap-form-wrap').style.display = 'block';
+  document.getElementById('snap-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('snap-text').focus();
+}
+
+function closeSnapForm() {
+  document.getElementById('snap-form-wrap').style.display = 'none';
+}
+
+function saveSnapshot() {
+  const type = document.getElementById('snap-type').value;
+  const date = document.getElementById('snap-date').value;
+  const text = document.getElementById('snap-text').value.trim();
+  if (!text) { document.getElementById('snap-text').focus(); return; }
+  const labels = { daily:'日报', weekly:'周报', monthly:'月报' };
+  const snap = { id: Date.now(), date, type, typeLabel: labels[type], text, stats: { ...currentStats } };
+  const snaps = loadSnaps();
+  snaps.unshift(snap);
+  saveSnaps(snaps);
+  document.getElementById('snap-text').value = '';
+  closeSnapForm();
+  renderHistory();
+}
+
+function deleteSnapshot(id) {
+  if (!confirm('确认删除这条快照？')) return;
+  const snaps = loadSnaps().filter(s => s.id !== id);
+  saveSnaps(snaps);
+  renderHistory();
+}
+
+function renderHistory() {
+  const snaps = loadSnaps();
+  const wrap = document.getElementById('history-wrap');
+  if (!snaps.length) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📝</div>
+        <div>还没有快照记录</div>
+        <div style="font-size:12px;margin-top:6px;color:#bbb">每日/周/月点击"记录快照"保存进度</div>
+      </div>
+      <button class="add-btn" onclick="openSnapForm()">+ 记录第一条快照</button>`;
+    return;
+  }
+
+  let html = '<div class="history-list">';
+  snaps.forEach(s => {
+    const d = new Date(s.date + 'T12:00:00').toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
+    html += `<div class="snap-card">
+      <div class="snap-head">
+        <span class="snap-date">${d}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="snap-type-badge">${s.typeLabel}</span>
+          <button class="snap-del" onclick="deleteSnapshot(${s.id})" title="删除">✕</button>
+        </div>
+      </div>
+      <div class="snap-body">${escHtml(s.text)}</div>`;
+    if (s.stats) {
+      html += `<div class="snap-stats">
+        <div class="snap-stat">总任务 <strong>${s.stats.total}</strong></div>
+        <div class="snap-stat">已发布 <strong>${s.stats.pub}</strong></div>
+        <div class="snap-stat">待 review <strong>${s.stats.review}</strong></div>
+        <div class="snap-stat">制作中 <strong>${s.stats.prod}</strong></div>
+      </div>`;
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<button class="add-btn" onclick="openSnapForm()" style="margin-top:10px">+ 新增快照</button>';
+  wrap.innerHTML = html;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function saveCache(tasks) {
+  try { localStorage.setItem('smk_cache', JSON.stringify({ tasks, ts: Date.now() })); } catch(e) {}
+}
+
+function loadCache() {
+  try {
+    const d = JSON.parse(localStorage.getItem('smk_cache') || 'null');
+    if (!d) return [];
+    if (Date.now() - d.ts > 24 * 60 * 60 * 1000) return [];
+    return d.tasks || [];
+  } catch(e) { return []; }
+}
+
+function loadSnaps() {
+  try { return JSON.parse(localStorage.getItem('smk_snaps') || '[]'); } catch(e) { return []; }
+}
+
+function saveSnaps(snaps) {
+  try { localStorage.setItem('smk_snaps', JSON.stringify(snaps)); } catch(e) {}
+}
+
+loadAsana();
+</script>
+</body>
+</html>
