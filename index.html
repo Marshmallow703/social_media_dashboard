@@ -99,7 +99,8 @@
   .zz-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 0.5px solid #f5f4f0; }
   .zz-item:last-child { border-bottom: none; }
   .zz-checkbox { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #ccc; flex-shrink: 0; cursor: pointer; accent-color: #534AB7; }
-  .zz-item-text { font-size: 13px; color: #1a1a1a; flex: 1; }
+  .zz-checkbox:checked + .zz-item-text { text-decoration: line-through; color: #aaa; }
+  .zz-item-text { font-size: 13px; color: #1a1a1a; flex: 1; cursor: pointer; }
   .zz-plat { font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
   .zz-plat-post { background: #FEF9C3; color: #854D0E; }
   .zz-plat-review { background: #FCE7F3; color: #9D174D; }
@@ -185,7 +186,7 @@
 </div>
 
 <script>
-const TOKEN = '2/1213206456523818/1214408896515501:c604a361d88c9de948a7dcfd4ff74be8';
+const TOKEN = '2/1213206456523818/1214409710536077:bf02087c0cf6e26ad56d611b70c2a9c8';
 const PROJECT_ID = '1214406810351207';
 const PLATFORMS = ['小红书','公众号','朋友圈','视频号','LinkedIn','Instagram'];
 const PLATFORM_META = {
@@ -314,10 +315,7 @@ function renderMatrix() {
 }
 
 function renderZZChecklist() {
-  const toPost = [];
-  const toReview = [];
-  const toApprove = [];
-
+  const toPost = [], toReview = [], toApprove = [];
   Object.entries(matrix).forEach(([ev, platforms]) => {
     Object.entries(platforms).forEach(([plat, cell]) => {
       if (cell.status !== 'review' && cell.status !== 'ready') return;
@@ -328,45 +326,42 @@ function renderZZChecklist() {
       else toReview.push(item);
     });
   });
-
   const total = toPost.length + toReview.length + toApprove.length;
   const wrap = document.getElementById('zz-checklist');
+  if (!total) { wrap.innerHTML = ''; return; }
 
-  if (!total) {
-    wrap.innerHTML = '';
-    return;
-  }
-
-  const ts = Date.now();
-
-  function buildGroup(items, type, title, countCls, platCls) {
+  function buildGroup(items, title, countCls, platCls) {
     if (!items.length) return '';
-    let h = `<div class="zz-group-head"><span class="zz-group-title">${title}</span><span class="zz-count ${countCls}">${items.length} 项</span></div>`;
+    let h = '<div class="zz-group-head">'
+          + '<span class="zz-group-title">' + title + '</span>'
+          + '<span class="zz-count ' + countCls + '">' + items.length + ' 项</span>'
+          + '</div>';
     items.forEach((item, i) => {
-      const id = `zz-${type}-${ts}-${i}`;
-      h += `<div class="zz-item">
-        <input type="checkbox" class="zz-checkbox" id="${id}" onchange="this.nextElementSibling.style.textDecoration=this.checked?'line-through':''; this.nextElementSibling.style.color=this.checked?'#aaa':'';">
-        <label class="zz-item-text" for="${id}">${item.ev}</label>
-        <span class="zz-plat ${platCls}">${item.plat}</span>
-      </div>`;
+      const id = 'zz' + i + Date.now();
+      h += '<div class="zz-item">'
+         + '<input type="checkbox" class="zz-checkbox" id="' + id + '">'
+         + '<label class="zz-item-text" for="' + id + '" onclick="">' + item.ev + '</label>'
+         + '<span class="zz-plat ' + platCls + '">' + item.plat + '</span>'
+         + '</div>';
     });
     return h;
   }
 
-  let html = `<div class="zz-section">
-    <div class="zz-header">
-      <span class="zz-header-title">竹子老师待处理清单</span>
-      <span class="zz-header-sub">共 ${total} 项</span>
-    </div>`;
-  html += buildGroup(toPost,    'post',    '📮 需竹子老师发送（朋友圈）', 'zz-count-post',    'zz-plat-post');
-  html += buildGroup(toReview,  'review',  '👀 需竹子老师 review',         'zz-count-review',  'zz-plat-review');
-  html += buildGroup(toApprove, 'approve', '✅ 需竹子老师 approve（Ins）',  'zz-count-approve', 'zz-plat-approve');
+  let html = '<div class="zz-section">'
+           + '<div class="zz-header">'
+           + '<span class="zz-header-title">竹子老师待处理清单</span>'
+           + '<span class="zz-header-sub">共 ' + total + ' 项</span>'
+           + '</div>';
+  html += buildGroup(toPost,    '需竹子老师发送（朋友圈）', 'zz-count-post',    'zz-plat-post');
+  html += buildGroup(toReview,  '需竹子老师 review',        'zz-count-review',  'zz-plat-review');
+  html += buildGroup(toApprove, '需竹子老师 approve（Ins）', 'zz-count-approve', 'zz-plat-approve');
   html += '</div>';
 
   wrap.innerHTML = html;
 }
 
 
+function updateStats() {
   let total=0, pub=0, review=0, prod=0, planning=0, zz=0;
   Object.values(matrix).forEach(ev => {
     Object.values(ev).forEach(cell => {
